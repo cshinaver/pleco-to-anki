@@ -6,6 +6,7 @@
 input_file = 'flash.xml'
 
 import xml.etree.ElementTree as ET
+import genanki
 
 
 class Card:
@@ -50,6 +51,7 @@ def parse_cards_from_pleco_xml(input_file):
     cards = []
     for card in root.iter('card'):
         try:
+            # TODo do individual error checking
             entry = card[0]
             simplified = entry[0].text
             traditional = entry[1].text
@@ -65,6 +67,45 @@ def parse_cards_from_pleco_xml(input_file):
         cards.append(card)
     return cards
 
+
+def create_anki_deck(cards):
+  my_model = genanki.Model(
+    1607392319, # generate random model ID import random; random.randrange(1 << 30, 1 << 31)
+    'Pleco to Anki Import model',
+    fields=[
+      {'name': 'SimplifiedChar'},
+      {'name': 'TraditionalChar'},
+      {'name': 'Pinyin'},
+      {'name': 'DictDefinition'},
+    ],
+    templates=[
+      {
+        'name': 'Card 1',
+        'qfmt': '{{SimplifiedChar}}: {{Pinyin}}',
+        'afmt': '{{FrontSide}}<hr id="answer">{{DictDefinition}}',
+      },
+    ])
+  notes = []
+
+  for card in cards:
+    my_note = genanki.Note(
+      model=my_model,
+      fields=[card.simplified, card.traditional, card.pinyin, card.definition])
+    notes.append(my_note)
+
+  pleco_to_anki_deck = genanki.Deck(
+    2059400110, # generate random model ID import random; random.randrange(1 << 30, 1 << 31)
+    'Pleco to Anki Imported Cards')
+
+  for note in notes:
+    pleco_to_anki_deck.add_note(note)
+
+  genanki.Package(pleco_to_anki_deck).write_to_file('/Users/cshinaver/Desktop/output.apkg')
+
+
 if __name__ == '__main__':
     cards = parse_cards_from_pleco_xml(input_file)
-    print(len(cards))
+    print('found {} cards'.format(len(cards)))
+    print('creating anki deck')
+    create_anki_deck(cards)
+    print('done')

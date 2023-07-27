@@ -8,6 +8,8 @@ import genanki
 import argparse, os, sys
 
 OUTPUT_FILENAME = 'pleco_to_anki_deck.apkg'
+DECK_ID = 2059400110 # generate random model ID import random; random.randrange(1 << 30, 1 << 31)
+CARD_TEMPLATE_ID = 1607392319 # generate random model ID import random; random.randrange(1 << 30, 1 << 31)
 
 # Implement argument parsing with argparse.
 # Expect one input xml file and one output anki file
@@ -112,7 +114,7 @@ def parse_cards_from_pleco_xml(input_file):
 
 def create_anki_deck(cards, output_path):
   my_model = genanki.Model(
-    1607392319, # generate random model ID import random; random.randrange(1 << 30, 1 << 31)
+    CARD_TEMPLATE_ID,
     'Pleco to Anki Import model',
     fields=[
       {'name': 'SimplifiedChar'},
@@ -138,7 +140,7 @@ def create_anki_deck(cards, output_path):
   deck_name = 'Pleco to Anki Imported Cards'
 
   pleco_to_anki_deck = genanki.Deck(
-    2059400110, # generate random model ID import random; random.randrange(1 << 30, 1 << 31)
+    DECK_ID,
     deck_name)
 
   for note in notes:

@@ -50,21 +50,38 @@ def parse_cards_from_pleco_xml(input_file):
     root = tree.getroot()
     cards = []
     for card in root.iter('card'):
-        try:
-            # TODo do individual error checking
-            entry = card[0]
-            simplified = entry[0].text
-            traditional = entry[1].text
-            pron = entry[2].text
-            defn = entry[3].text
-        except Exception as e:
-            print('failed to parse card')
-            for child in card:
-                print(child.tag, child.attrib, child.text)
-            print(e)
-            continue
-        card = Card(simplified, traditional, pron, defn)
-        cards.append(card)
+      entry = card[0]
+      if entry == None or entry.tag != 'entry':
+        print('skipping card with no <entry>')
+
+      columns = len(entry)
+      if columns != 4:
+        print('skipping card with entry missing expected information. <entry> tag should have simplified, traditional, pron, and defn')
+        continue
+
+      simplified_tag = entry[0]
+      if simplified_tag == None or simplified_tag.tag != 'headword' or simplified_tag.attrib['charset'] != 'sc':
+        continue
+      simplified = entry[0].text
+
+      traditional_tag = entry[1]
+      traditional = None
+      if traditional_tag != None and traditional_tag.tag == 'headword' and traditional_tag.attrib['charset'] == 'tc':
+        traditional = entry[1].text
+
+      pron_tag = entry[2]
+      if pron_tag == None or pron_tag.tag != 'pron' or pron_tag.attrib['type'] != 'hypy':
+        print('skipping card with no pronunciation')
+        continue
+      pron = entry[2].text
+
+      defn_tag = entry[3]
+      if defn_tag == None or defn_tag.tag != 'defn':
+        print('skipping card with no definition')
+        continue
+      defn = entry[3].text
+      card = Card(simplified, traditional, pron, defn)
+      cards.append(card)
     return cards
 
 
@@ -104,8 +121,9 @@ def create_anki_deck(cards):
 
 
 if __name__ == '__main__':
-    cards = parse_cards_from_pleco_xml(input_file)
-    print('found {} cards'.format(len(cards)))
-    print('creating anki deck')
-    create_anki_deck(cards)
-    print('done')
+  print('Importing Pleco XML file')
+  cards = parse_cards_from_pleco_xml(input_file)
+  print('found {} cards'.format(len(cards)))
+  print('creating anki deck')
+  create_anki_deck(cards)
+  print('done')

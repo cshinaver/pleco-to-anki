@@ -114,6 +114,9 @@ def clean_defn(raw_defn):
 
     ls.append(c)
   defn = ''.join(ls)
+
+  # Convert newlines to <br>
+  defn = defn.replace('\n', '<br>')
   return defn
 
 

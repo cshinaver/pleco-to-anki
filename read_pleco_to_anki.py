@@ -3,10 +3,35 @@
 # Read XML file exported from Pleco and convert to Anki deck
 # Usage: read_pleco_to_anki.py <input_file> <output_file>
 
-input_file = 'flash.xml'
-
 import xml.etree.ElementTree as ET
 import genanki
+import argparse, os, sys
+
+OUTPUT_FILENAME = 'pleco_to_anki_deck.apkg'
+
+# Implement argument parsing with argparse.
+# Expect one input xml file and one output anki file
+def parse_args():
+  parser = argparse.ArgumentParser(description='Read XML file exported from Pleco and convert to Anki deck')
+  parser.add_argument('input_file', type=str, help='Flashcards XML file from Pleco')
+  parser.add_argument('output_path', type=str, help='output path for Anki deck')
+  args = parser.parse_args()
+
+  # Verify input file exists and is xml file
+  if not os.path.isfile(args.input_file):
+    print('Input file {} does not exist'.format(args.input_file))
+    sys.exit(1)
+  if not args.input_file.endswith('.xml'):
+    print('Input file {} is not an xml file'.format(args.input_file))
+    sys.exit(1)
+
+  # verify output path is valid path
+  if not os.path.isdir(os.path.dirname(args.output_path)):
+    print('Output path {} is not a valid path'.format(args.output_path))
+    sys.exit(1)
+
+  return args
+
 
 
 class Card:
@@ -49,14 +74,14 @@ def parse_cards_from_pleco_xml(input_file):
     tree = ET.parse(input_file)
     root = tree.getroot()
     cards = []
-    for card in root.iter('card'):
+    for i, card in enumerate(root.iter('card')):
       entry = card[0]
       if entry == None or entry.tag != 'entry':
         print('skipping card with no <entry>')
 
       columns = len(entry)
       if columns != 4:
-        print('skipping card with entry missing expected information. <entry> tag should have simplified, traditional, pron, and defn')
+        print('skipping card {} with entry missing expected information. <entry> tag should have simplified, traditional, pron, and defn'.format(i))
         continue
 
       simplified_tag = entry[0]
@@ -85,7 +110,7 @@ def parse_cards_from_pleco_xml(input_file):
     return cards
 
 
-def create_anki_deck(cards):
+def create_anki_deck(cards, output_path):
   my_model = genanki.Model(
     1607392319, # generate random model ID import random; random.randrange(1 << 30, 1 << 31)
     'Pleco to Anki Import model',
@@ -110,20 +135,24 @@ def create_anki_deck(cards):
       fields=[card.simplified, card.traditional, card.pinyin, card.definition])
     notes.append(my_note)
 
+  deck_name = 'Pleco to Anki Imported Cards'
+
   pleco_to_anki_deck = genanki.Deck(
     2059400110, # generate random model ID import random; random.randrange(1 << 30, 1 << 31)
-    'Pleco to Anki Imported Cards')
+    deck_name)
 
   for note in notes:
     pleco_to_anki_deck.add_note(note)
 
-  genanki.Package(pleco_to_anki_deck).write_to_file('/Users/cshinaver/Desktop/output.apkg')
+
+  genanki.Package(pleco_to_anki_deck).write_to_file(os.path.join(output_path, 'pleco_to_anki.apkg'))
 
 
 if __name__ == '__main__':
+  args = parse_args()
   print('Importing Pleco XML file')
-  cards = parse_cards_from_pleco_xml(input_file)
+  cards = parse_cards_from_pleco_xml(args.input_file)
   print('found {} cards'.format(len(cards)))
   print('creating anki deck')
-  create_anki_deck(cards)
+  create_anki_deck(cards, args.output_path)
   print('done')

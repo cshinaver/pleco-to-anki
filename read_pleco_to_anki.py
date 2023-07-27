@@ -5,7 +5,7 @@
 
 import xml.etree.ElementTree as ET
 import genanki
-import argparse, os, sys
+import argparse, os, sys, re
 
 OUTPUT_FILENAME = 'pleco_to_anki_deck.apkg'
 DECK_ID = 2059400110 # generate random model ID import random; random.randrange(1 << 30, 1 << 31)
@@ -71,6 +71,52 @@ class Card:
 #    </card>
 
 
+def is_chinese_char(char):
+  return char >= u'\u4e00' and char <= u'\u9fff'
+
+def clean_defn(raw_defn):
+  defn = raw_defn
+
+  ls = []
+
+  # Raw definition looks like this
+  # adjective 1 difficult; hard; troublesome (opp. 易) 很难想象 Hěn nán xiǎngxiàng (it’s) hard to imagine 山路难走。 Shānlù nán zǒu. Mountain paths are hard to travel. 说起来容易做起来难。 Shuō qǐ
+  # lai róngyì zuò qǐlai nán. Easier said than done. 这道题很难解。 zhè dào tí hěn nán jiě. This problem is hard to solve. 2 hardly possible; unavoidable See 27188992难免nan2mian3难免 3 bad;
+  # unpleasant 这种啤酒真难喝。 zhèzhǒng píjiǔ zhēn nán hē. This beer tastes really bad.
+  # verb put sb. into a difficult position 这问题一下子把我难住了。 Zhè wèntí yīxiàzi bǎ wǒ nán zhù le. The question put me on the spot.
+
+  # Convert to look like this
+  # adjective 1 difficult; hard; troublesome (opp. 易)
+  # | 很难想象 Hěn nán xiǎngxiàng (it’s) hard to imagine
+  # | 山路难走。 Shānlù nán zǒu. Mountain paths are hard to travel.
+  # | 说起来容易做起来难。 Shuō qǐ lai róngyì zuò qǐlai nán. Easier said than done.
+  # | 这道题很难解。 zhè dào tí hěn nán jiě. This problem is hard to solve.
+
+  # 2 hardly possible; unavoidable
+  # See 27188992难免nan2mian3难免
+
+  in_chinese_sentence = False
+  for i, c in enumerate(raw_defn):
+    # if current and next chars are chinese, add new line before current char
+    if i < len(raw_defn) - 1 and not in_chinese_sentence and is_chinese_char(c) and is_chinese_char(raw_defn[i+1]):
+      ls.append('\n')
+      in_chinese_sentence = True
+    elif in_chinese_sentence and not is_chinese_char(c):
+      in_chinese_sentence = False
+    # if next section is a number followed by words followed by semicolon, add a newline
+    elif re.match(r'^\d+ [a-zA-Z ]+;', raw_defn[i:i+40]):
+      ls.append('\n\n')
+
+    # if word is 'noun', 'verb', or 'adjective', add a new line
+    current_word = re.match(r'^[a-zA-Z]+', raw_defn[i:i+40])
+    if current_word and current_word.group(0) in ['noun', 'verb', 'adjective']:
+      ls.append('\n')
+
+    ls.append(c)
+  defn = ''.join(ls)
+  return defn
+
+
 # Print all the cards
 def parse_cards_from_pleco_xml(input_file):
     tree = ET.parse(input_file)
@@ -106,7 +152,7 @@ def parse_cards_from_pleco_xml(input_file):
       if defn_tag == None or defn_tag.tag != 'defn':
         print('skipping card with no definition')
         continue
-      defn = entry[3].text
+      defn = clean_defn(entry[3].text)
       card = Card(simplified, traditional, pron, defn)
       cards.append(card)
     return cards

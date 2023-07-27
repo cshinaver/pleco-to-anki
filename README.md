@@ -10,6 +10,11 @@ Install the requirements from `requirements.txt` and then run
 
 `python read_pleco_to_anki.py flash.xml ~/Desktop/`
 
+# Export from Pleco
+For this to work, you must have the following checked from "Include Data":
+* Card Defnintions
+* Dictionary Definitions
+
 # Loading into anki.
 This can only be done with Desktop Anki. Double clicking on the deck will load
 it into your desktop anki app. The deck id is constant, so if you rename it in
